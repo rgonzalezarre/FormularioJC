@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
                 { _, year, month, dayOfMonth ->
                     fechaNac = "$dayOfMonth/${month + 1}/$year"
 
-                    // --- LÓGICA DE VALIDACIÓN ---
+                    //validacion de fechas
                     val hoy = Calendar.getInstance()
                     val fechaSeleccionada = Calendar.getInstance().apply {
                         set(year, month, dayOfMonth)
