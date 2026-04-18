@@ -785,7 +785,8 @@ class MainActivity : ComponentActivity() {
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = ColorPrimary,
                                                 contentColor = MyBackgroundColor,
-                                                disabledContainerColor = ColorFields
+                                                disabledContainerColor = ColorFields,
+                                                disabledContentColor = MyBackgroundColor
                                             ),
                                             enabled = esFormularioValido
                                         ) {
