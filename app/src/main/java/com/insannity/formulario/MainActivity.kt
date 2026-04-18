@@ -29,7 +29,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -356,7 +355,6 @@ class MainActivity : ComponentActivity() {
                                         errorContainerColor = ColorFields
                                     ),
                                     shape = RoundedCornerShape(16.dp),
-                                    //isError=nombreError,//Es para marcar la casiila de error
                                     supportingText = {
                                         if(nombreError){
                                             Text(
@@ -430,7 +428,6 @@ class MainActivity : ComponentActivity() {
                                 )
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Fecha de nacimiento
-                                //QUITAR EL TECLADO CUANDO ENTRE A ESTA OPCION
                                 Text(
                                     text = stringResource(R.string.birthdate),
                                     fontSize = 14.sp,
@@ -490,9 +487,9 @@ class MainActivity : ComponentActivity() {
                                     opcionesGenero.forEach { texto ->
 
                                         RadioButton(
-                                            selected = (texto == genero), // ¿Está marcado?
+                                            selected = (texto == genero),
                                             onClick = { genero = texto
-                                                      if(genero.isNotEmpty()) generoError=false}, // Al hacer clic
+                                                      if(genero.isNotEmpty()) generoError=false},
                                             colors = RadioButtonDefaults.colors(
                                                 selectedColor = ColorTertiary,
                                                 unselectedColor = ColorNeutral
@@ -514,14 +511,13 @@ class MainActivity : ComponentActivity() {
                                     Text(
                                         text= stringResource(R.string.error_message_gender),
                                         color=Color.Red,
-                                        fontSize = 12.sp, // Tamaño estándar de Material 3 para errores
+                                        fontSize = 12.sp,
                                         fontFamily = FontFamily(Font(R.font.manrope)),
                                         modifier = Modifier
                                             .padding(start = 16.dp, top = 4.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.size(32.dp))
-                                //Numero de telefono, todavia me falta hacer que maneje el numero bien
                                 Text(
                                     text = stringResource(R.string.phonenumber),
                                     fontSize = 14.sp,
@@ -530,7 +526,7 @@ class MainActivity : ComponentActivity() {
                                     color = ColorNeutral
                                 )
                                 KomposeCountryCodePicker(
-                                    state = countryPickerState, // Asegúrate de tener: val countryPickerState = rememberKomposeCountryCodePickerState()
+                                    state = countryPickerState,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .border(
@@ -551,7 +547,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     placeholder = {
                                         Text(
-                                            text = stringResource(R.string.placeholder_phonenumber), // O tu texto directo
+                                            text = stringResource(R.string.placeholder_phonenumber),
                                             color = ColorNeutral,
                                             fontSize = 14.sp,
                                             fontFamily = FontFamily(Font(R.font.manrope))
@@ -573,7 +569,7 @@ class MainActivity : ComponentActivity() {
                                     Text(
                                         text= stringResource(R.string.error_message_phonenumber_1),
                                         color=Color.Red,
-                                        fontSize = 12.sp, // Tamaño estándar de Material 3 para errores
+                                        fontSize = 12.sp,
                                         fontFamily = FontFamily(Font(R.font.manrope)),
                                         modifier = Modifier
                                             .padding(start = 16.dp, top = 4.dp)
@@ -582,7 +578,7 @@ class MainActivity : ComponentActivity() {
                                     Text(
                                         text= stringResource(R.string.error_message_phonenumber_2),
                                         color=Color.Red,
-                                        fontSize = 12.sp, // Tamaño estándar de Material 3 para errores
+                                        fontSize = 12.sp,
                                         fontFamily = FontFamily(Font(R.font.manrope)),
                                         modifier = Modifier
                                             .padding(start = 16.dp, top = 4.dp)
@@ -637,7 +633,7 @@ class MainActivity : ComponentActivity() {
                                         errorContainerColor = ColorFields
                                     ),
                                     shape = RoundedCornerShape(16.dp),
-                                    singleLine = true, // Importante para que no crezca hacia abajo
+                                    singleLine = true,
                                     supportingText = {
                                         if (emailError=="1") {
                                             Text(
@@ -789,8 +785,7 @@ class MainActivity : ComponentActivity() {
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = ColorPrimary,
                                                 contentColor = MyBackgroundColor,
-                                                // Opcional: define colores específicos para cuando esté deshabilitado
-                                                disabledContainerColor = Color.Gray.copy(alpha = 0.5f)
+                                                disabledContainerColor = ColorFields
                                             ),
                                             enabled = esFormularioValido
                                         ) {
@@ -803,9 +798,8 @@ class MainActivity : ComponentActivity() {
                                         if (!esFormularioValido) {
                                             Box(
                                                 modifier = Modifier
-                                                    .matchParentSize() // Se pone encima del botón
+                                                    .matchParentSize()
                                                     .clickable {
-                                                        // Acción cuando el usuario pica y está bloqueado:
                                                         // Forzamos a que se muestren los errores si los campos están vacíos
                                                         if (nombre.isEmpty()) nombreError = true
                                                         if (apellido.isEmpty()) apellidoError = true
@@ -813,8 +807,6 @@ class MainActivity : ComponentActivity() {
                                                         if (genero.isEmpty()) generoError = true
                                                         if (phoneNumber.isEmpty()) phoneError = "2"
                                                         if (email.isEmpty()) emailError = "2"
-
-                                                        // Aquí podrías mostrar un Toast o un aviso
                                                     }
                                             )
                                         }
