@@ -1,11 +1,14 @@
 package com.insannity.formulario
 
 import android.os.Bundle
+import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,9 +18,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,38 +30,39 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,6 +71,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.insannity.formulario.ui.theme.ColorError
 import com.insannity.formulario.ui.theme.ColorFields
 import com.insannity.formulario.ui.theme.ColorNeutral
 import com.insannity.formulario.ui.theme.ColorNeutralLight
@@ -74,7 +81,10 @@ import com.insannity.formulario.ui.theme.ColorTertiary
 import com.insannity.formulario.ui.theme.ColorTextFields
 import com.insannity.formulario.ui.theme.MyBackgroundColor
 import com.insannity.formulario.ui.theme.FormularioTheme
+import com.joelkanyi.jcomposecountrycodepicker.component.KomposeCountryCodePicker
+import com.joelkanyi.jcomposecountrycodepicker.component.rememberKomposeCountryCodePickerState
 import kotlinx.serialization.Serializable
+import java.util.Calendar
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -82,6 +92,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val focusManager = LocalFocusManager.current
             val navController: NavHostController = rememberNavController()
             var nombre by rememberSaveable {
                 mutableStateOf("")
@@ -95,9 +106,17 @@ class MainActivity : ComponentActivity() {
             var genero by rememberSaveable {
                 mutableStateOf("")
             }
-            var numTel by rememberSaveable {
-                mutableStateOf("")
-            }
+            //varaibles para lo del numero de telefono y la lada
+            var phoneNumber by rememberSaveable { mutableStateOf("") }
+            val countryPickerState = rememberKomposeCountryCodePickerState(
+                defaultCountryCode="mx",
+                showCountryCode = true,
+                showCountryFlag = true,
+            )
+            var generoError by rememberSaveable { mutableStateOf(false) }
+
+            var phoneError by rememberSaveable { mutableStateOf("0") }
+
             var email by rememberSaveable {
                 mutableStateOf("")
             }
@@ -107,50 +126,79 @@ class MainActivity : ComponentActivity() {
             var descripcion by rememberSaveable {
                 mutableStateOf("")
             }
-            //Variable para habilitar el boton
-            var enableButton by rememberSaveable {
-                mutableStateOf(false)
-            }
-            //variables para el datePicker y validaciones de edad
-            var showDatePicker by remember { mutableStateOf(false) }
-            val datePickerState = rememberDatePickerState(
-                selectableDates = object : SelectableDates {
-                    override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                        return utcTimeMillis <= System.currentTimeMillis()
+
+            //variables para el calendario
+            var fechaNacError by rememberSaveable { mutableStateOf("0") }
+            val context = LocalContext.current
+            val calendar = Calendar.getInstance()
+            val calendarLimite = Calendar.getInstance()
+            calendarLimite.add(Calendar.YEAR, -13)
+            val datePickerDialog = android.app.DatePickerDialog(
+                context,
+                { _, year, month, dayOfMonth ->
+                    fechaNac = "$dayOfMonth/${month + 1}/$year"
+
+                    // --- LÓGICA DE VALIDACIÓN ---
+                    val hoy = Calendar.getInstance()
+                    val fechaSeleccionada = Calendar.getInstance().apply {
+                        set(year, month, dayOfMonth)
                     }
-                }
-            )
-            //validacion de edad
-            var tipoErrorFecha by rememberSaveable { mutableIntStateOf(0) }
-            fun validarEdad(fechaMillis: Long?): Int {
-                if (fechaMillis == null) return 1
-                val hoy = java.util.Calendar.getInstance()
-                val nacimiento = java.util.Calendar.getInstance().apply { timeInMillis = fechaMillis }
 
-                if (nacimiento.after(hoy)) return 1
+                    // Calculamos la edad
+                    var edad = hoy.get(Calendar.YEAR) - fechaSeleccionada.get(Calendar.YEAR)
 
-                var edad = hoy.get(java.util.Calendar.YEAR) - nacimiento.get(java.util.Calendar.YEAR)
-                if (hoy.get(java.util.Calendar.DAY_OF_YEAR) < nacimiento.get(java.util.Calendar.DAY_OF_YEAR)) edad--
+                    // Ajuste por si aún no ha pasado su cumpleaños este año
+                    if (hoy.get(Calendar.DAY_OF_YEAR) < fechaSeleccionada.get(Calendar.DAY_OF_YEAR)) {
+                        edad--
+                    }
 
-                return if (edad >= 13) 0 else 2
+                    // Si es menor de 13, marcamos error
+                    fechaNacError = if(edad < 13){
+                        "1"
+                    } else "0"
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            ).apply {
+                // Esto permite seleccionar cualquier fecha hasta el día de hoy
+                datePicker.maxDate = System.currentTimeMillis()
             }
+
+
+
 
             //Varaible de la lista de generos
-            val opcionesGenero = listOf("Masculino", "Femenino", "Otro")
+            val opcionesGenero = listOf(stringResource(R.string.male),
+                stringResource(R.string.female), stringResource(R.string.other)
+            )
             //Variable lista de intereses
-            val opcionesIntereses1 = listOf("Musica","Viajar","Tecnologia")
-            val opcionesIntereses2 = listOf("Deportes","Leer","Gaming")
+            val opcionesIntereses1 = listOf(stringResource(R.string.music),
+                stringResource(R.string.travel), stringResource(R.string.technology)
+            )
+            val opcionesIntereses2 = listOf(stringResource(R.string.sports),
+                stringResource(R.string.read), stringResource(R.string.gaming)
+            )
+
+            //Validaciones de correo
+            // Estado para controlar si el email es válido
+            var emailError by rememberSaveable { mutableStateOf("0") }
+            // Patrón estándar de validación de correo
+            val emailPattern = Patterns.EMAIL_ADDRESS
+
             //Mensajes de error
             //Nombre
             var nombreError by rememberSaveable { mutableStateOf(false) }
             //Apellido
             var apellidoError by rememberSaveable { mutableStateOf(false) }
             //FechaNac
-            val mensajeErrorNac = when (tipoErrorFecha) {
-                1 -> "Por favor, ingresa una fecha válida"
-                2 -> "Debes tener al menos 13 años para registrarte"
-                else -> ""
-            }
+            //Variable para boton
+            val esFormularioValido = nombre.isNotEmpty() && !nombreError &&
+                    apellido.isNotEmpty() && !apellidoError &&
+                    fechaNac.isNotEmpty() && fechaNacError == "0" &&
+                    genero.isNotEmpty() &&
+                    phoneNumber.length == 10 && phoneError == "0" &&
+                    email.isNotEmpty() && emailError == "0"
 
             FormularioTheme {
                 NavHost(
@@ -165,7 +213,7 @@ class MainActivity : ComponentActivity() {
                                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MyBackgroundColor),
                                     title= {
                                         Text(
-                                            text = "Completa tu perfil",
+                                            text = stringResource(R.string.completa_tu_perfil_title),
                                             fontSize = 20.sp,
                                             fontFamily =FontFamily(Font(R.font.plusjakartabold)),
                                             color = ColorSecondary
@@ -174,7 +222,7 @@ class MainActivity : ComponentActivity() {
                                     actions = {
                                         Box(modifier= Modifier.padding(end = 20.dp)){
                                             Text(
-                                                text = "Form",
+                                                text = stringResource(R.string.title),
                                                 fontSize = 20.sp,
                                                 fontFamily =FontFamily(Font(R.font.plusjakartabold)),
                                                 color= ColorPrimary
@@ -196,14 +244,14 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 //Parte de crea tu perfil y texto inicial
                                 Text(
-                                    text = "Crea tu perfil",
+                                    text = stringResource(R.string.subtitle),
                                     fontSize = 32.sp,
                                     fontFamily = FontFamily(Font(R.font.plusjakartabold)),
                                     color = ColorNeutralLight,
                                     modifier = Modifier.padding(top = 40.dp)
                                 )
                                 Text(
-                                    text = "Permite a los demas conocer mas acerca de ti antes de continuar.",
+                                    text = stringResource(R.string.description_title),
                                     fontSize = 16.sp,
                                     fontFamily = FontFamily(Font(R.font.manrope)),
                                     color = ColorNeutral,
@@ -220,29 +268,36 @@ class MainActivity : ComponentActivity() {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .background(ColorFields, shape = RoundedCornerShape(75.dp)),
+                                            .clip(CircleShape)
+                                            .background(
+                                                ColorFields,
+                                                shape = RoundedCornerShape(75.dp)
+                                            ),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Home,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(50.dp),
-                                            tint = ColorNeutral
+                                        Image(
+                                            painter = painterResource(id = R.drawable.profilepicture), // Cambia esto por el nombre de tu archivo
+                                            contentDescription = "Foto de perfil",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+
                                         )
                                     }
-
                                     //Icono de camara
                                     Box(
                                         modifier = Modifier
                                             .size(48.dp)
                                             .align(Alignment.BottomEnd) // Lo posiciona abajo a la derecha
-                                            .background(ColorTertiary, shape = RoundedCornerShape(24.dp))
+                                            .background(
+                                                ColorTertiary,
+                                                shape = RoundedCornerShape(24.dp)
+                                            )
                                             .clickable { /* Aquí abrirías la galería */ },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ExitToApp, // Me falta poner el icono
-                                            contentDescription = "Cambiar foto",
+                                            painter = painterResource(id = R.drawable.camera_icon),
+                                            contentDescription = stringResource(R.string.change_photo),
                                             modifier = Modifier.size(18.dp),
                                             tint = ColorNeutralLight
                                         )
@@ -251,19 +306,24 @@ class MainActivity : ComponentActivity() {
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Nombre
                                 Text(
-                                    text = "Nombre(s)",
+                                    text = stringResource(R.string.name),
                                     fontSize = 14.sp,
                                     fontFamily = FontFamily(Font(R.font.manrope)),
                                     fontWeight = FontWeight.Bold,
                                     color = ColorNeutral
                                 )
-                                TextField(
+                                OutlinedTextField(
                                     value = nombre,
+                                    isError = nombreError,
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions.Default.copy(
                                         keyboardType = KeyboardType.Text
                                     ),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = {
+                                            focusManager.clearFocus()
+                                        }),
                                     onValueChange = { nuevoValor ->
                                         if(nuevoValor.length<20) {
                                             nombre = nuevoValor
@@ -273,48 +333,61 @@ class MainActivity : ComponentActivity() {
                                     },
                                     placeholder = {
                                         Text(
-                                            text = "Tu nombre",
+                                            text = stringResource(R.string.placeholder_name),
                                             color = ColorNeutral,
                                             fontSize = 14.sp,
                                             fontFamily = FontFamily(Font(R.font.manrope))
                                         )
                                     },
-                                    colors = TextFieldDefaults.colors(
+
+                                    colors = OutlinedTextFieldDefaults.colors(
                                         unfocusedContainerColor = ColorFields,
                                         focusedContainerColor = ColorFields,
-                                        focusedIndicatorColor = Color.Transparent,
-                                        unfocusedIndicatorColor = Color.Transparent,
+                                        focusedBorderColor = Color.Transparent,
+                                        unfocusedBorderColor = Color.Transparent,
+
                                         focusedTextColor = ColorTextFields,//Color de cuando se cambia el texto
                                         unfocusedTextColor= ColorTextFields,
-                                        cursorColor = ColorTextFields
+                                        cursorColor = ColorTextFields,
+                                        //Colores cuando hay un error
+                                        errorBorderColor = ColorError,
+                                        errorLabelColor = ColorError,
+                                        errorCursorColor = ColorTextFields,
+                                        errorContainerColor = ColorFields
                                     ),
                                     shape = RoundedCornerShape(16.dp),
                                     //isError=nombreError,//Es para marcar la casiila de error
                                     supportingText = {
                                         if(nombreError){
                                             Text(
-                                                text="Nombre obligatorio",
-                                                color=Color.Red
+                                                text= stringResource(R.string.error_message_name),
+                                                color= ColorError
                                             )
                                         }
+
                                     }
                                 )
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Apellido
                                 Text(
-                                    text = "Apellido",
+                                    text = stringResource(R.string.surname),
                                     fontSize = 14.sp,
                                     fontFamily = FontFamily(Font(R.font.manrope)),
                                     fontWeight = FontWeight.Bold,
                                     color = ColorNeutral
                                 )
-                                TextField(
+                                OutlinedTextField(
                                     value = apellido,
+                                    isError = apellidoError,
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     keyboardOptions = KeyboardOptions.Default.copy(
                                         keyboardType = KeyboardType.Text
                                     ),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = {
+                                            focusManager.clearFocus()
+                                        }),
                                     onValueChange = { nuevoValor ->
                                         if(apellido.length<20){
                                             apellido = nuevoValor
@@ -324,7 +397,7 @@ class MainActivity : ComponentActivity() {
                                     supportingText = {
                                         if(apellidoError){
                                             Text(
-                                                text="Apellido obligatorio",
+                                                text= stringResource(R.string.error_message_surname),
                                                 color=Color.Red
                                             )
                                         }
@@ -332,73 +405,81 @@ class MainActivity : ComponentActivity() {
                                     },
                                     placeholder = {
                                         Text(
-                                            text = "Tu apellido",
+                                            text = stringResource(R.string.placeholder_surname),
                                             color = ColorNeutral,
                                             fontSize = 14.sp,
                                             fontFamily = FontFamily(Font(R.font.manrope))
                                         )
                                     },
-                                    colors = TextFieldDefaults.colors(
+                                    colors = OutlinedTextFieldDefaults.colors(
                                         unfocusedContainerColor = ColorFields,
                                         focusedContainerColor = ColorFields,
-                                        focusedIndicatorColor = Color.Transparent,
-                                        unfocusedIndicatorColor = Color.Transparent,
+                                        focusedBorderColor = Color.Transparent,
+                                        unfocusedBorderColor = Color.Transparent,
+
                                         focusedTextColor = ColorTextFields,//Color de cuando se cambia el texto
                                         unfocusedTextColor= ColorTextFields,
-                                        cursorColor=ColorTextFields
+                                        cursorColor = ColorTextFields,
+                                        //Colores cuando hay un error
+                                        errorBorderColor = ColorError,
+                                        errorLabelColor = ColorError,
+                                        errorCursorColor = ColorTextFields,
+                                        errorContainerColor = ColorFields
                                     ),
                                     shape = RoundedCornerShape(16.dp)
                                 )
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Fecha de nacimiento
+                                //QUITAR EL TECLADO CUANDO ENTRE A ESTA OPCION
                                 Text(
-                                    text = "Fecha de nacimiento",
+                                    text = stringResource(R.string.birthdate),
                                     fontSize = 14.sp,
                                     fontFamily = FontFamily(Font(R.font.manrope)),
                                     fontWeight = FontWeight.Bold,
                                     color = ColorNeutral
                                 )
-                                Box(
+                                OutlinedTextField(
+                                    value = fechaNac,
+                                    onValueChange = { },
+                                    readOnly = true,
+                                    enabled = false,
+                                    isError = fechaNacError=="1" || fechaNacError=="2",
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 8.dp)
-                                        .clickable { showDatePicker = true } // <--- EL CLIC VA AQUÍ
-                                ) {
-                                    TextField(
-                                        modifier=Modifier.fillMaxWidth(),
-                                        value = fechaNac,
-                                        onValueChange = { },
-                                        readOnly = true,   // Importante para que no salga el teclado
-                                        enabled = false,    // Importante para que el clic pase al Box
-                                        placeholder = {
+                                        .clickable { datePickerDialog.show() },
+                                    supportingText = {
+                                        if (fechaNacError=="1") {
                                             Text(
-                                                text = "dd/mm/aaaa",
-                                                color = ColorNeutral,
-                                                fontSize = 14.sp
+                                                text = stringResource(R.string.error_message_birthdate_1),
+                                                color = Color.Red
                                             )
-                                        },
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors = TextFieldDefaults.colors(
-                                            disabledContainerColor = ColorFields,
-                                            disabledTextColor = ColorTextFields,
-                                            disabledIndicatorColor = Color.Transparent,
-                                            disabledPlaceholderColor = ColorTextFields
-                                        ),
-                                        supportingText = {
-                                            if (tipoErrorFecha != 0) {
-                                                Text(
-                                                    text = mensajeErrorNac,
-                                                    fontFamily = FontFamily(Font(R.font.manrope)),
-                                                    color = Color.Red
-                                                )
-                                            }
+                                        }else if(fechaNacError=="2"){
+                                            Text(
+                                                text = stringResource(R.string.error_message_birthdate_2),
+                                                color = ColorError
+                                            )
                                         }
-                                    )
-                                }
+                                    },
+                                    colors = TextFieldDefaults.colors(
+                                        disabledContainerColor = ColorFields,
+                                        disabledTextColor = ColorTextFields,
+                                        disabledIndicatorColor = if (fechaNacError=="1" || fechaNacError=="2") Color.Red else Color.Transparent,
+                                        disabledLabelColor = ColorNeutral
+                                    ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    placeholder = {
+                                        Text(
+                                            text=stringResource(R.string.placeholder_birthdate),
+                                            color = ColorNeutral,
+                                            fontSize = 14.sp,
+                                            fontFamily = FontFamily(Font(R.font.manrope))
+                                        )
+                                    }
+                                )
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Genero
                                 Text(
-                                    text = "Genero",
+                                    text = stringResource(R.string.gender),
                                     fontSize = 14.sp,
                                     fontFamily = FontFamily(Font(R.font.manrope)),
                                     fontWeight = FontWeight.Bold,
@@ -410,7 +491,8 @@ class MainActivity : ComponentActivity() {
 
                                         RadioButton(
                                             selected = (texto == genero), // ¿Está marcado?
-                                            onClick = { genero = texto }, // Al hacer clic
+                                            onClick = { genero = texto
+                                                      if(genero.isNotEmpty()) generoError=false}, // Al hacer clic
                                             colors = RadioButtonDefaults.colors(
                                                 selectedColor = ColorTertiary,
                                                 unselectedColor = ColorNeutral
@@ -428,56 +510,108 @@ class MainActivity : ComponentActivity() {
 
 
                                 }
+                                if(generoError){
+                                    Text(
+                                        text= stringResource(R.string.error_message_gender),
+                                        color=Color.Red,
+                                        fontSize = 12.sp, // Tamaño estándar de Material 3 para errores
+                                        fontFamily = FontFamily(Font(R.font.manrope)),
+                                        modifier = Modifier
+                                            .padding(start = 16.dp, top = 4.dp)
+                                    )
+                                }
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Numero de telefono, todavia me falta hacer que maneje el numero bien
                                 Text(
-                                    text = "Número de teléfono",
+                                    text = stringResource(R.string.phonenumber),
                                     fontSize = 14.sp,
                                     fontFamily = FontFamily(Font(R.font.manrope)),
                                     fontWeight = FontWeight.Bold,
                                     color = ColorNeutral
                                 )
-                                TextField(
-                                    value = numTel,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    onValueChange = { nuevoValor ->
-                                        numTel = nuevoValor
+                                KomposeCountryCodePicker(
+                                    state = countryPickerState, // Asegúrate de tener: val countryPickerState = rememberKomposeCountryCodePickerState()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .border(
+                                            width = if (phoneError != "0") 1.dp else 0.dp,
+                                            color = if (phoneError != "0") ColorError else Color.Transparent, // Color del borde
+                                            shape = RoundedCornerShape(16.dp)
+                                        ),
+                                    text = phoneNumber,
+                                    onValueChange = {nuevoValor->
+                                        if (nuevoValor.all { it.isDigit() } && nuevoValor.length <= 10){
+                                        phoneNumber = nuevoValor
+                                            phoneError = when {
+                                                nuevoValor.isEmpty() -> "2"      // Campo vacío
+                                                nuevoValor.length < 10 -> "1"   // Número incompleto
+                                                else -> "0"                     // Todo bien
+                                            }
+                                        }
                                     },
                                     placeholder = {
                                         Text(
-                                            text = "Tu numero",
+                                            text = stringResource(R.string.placeholder_phonenumber), // O tu texto directo
                                             color = ColorNeutral,
                                             fontSize = 14.sp,
                                             fontFamily = FontFamily(Font(R.font.manrope))
                                         )
                                     },
+                                    shape = RoundedCornerShape(16.dp),
                                     colors = TextFieldDefaults.colors(
-                                        unfocusedContainerColor = ColorFields,
                                         focusedContainerColor = ColorFields,
+                                        unfocusedContainerColor = ColorFields,
+                                        focusedTextColor = ColorTextFields,
+                                        unfocusedTextColor = ColorTextFields,
                                         focusedIndicatorColor = Color.Transparent,
                                         unfocusedIndicatorColor = Color.Transparent,
-                                        focusedTextColor = ColorTextFields//Color de cuando se cambia el texto
+                                        cursorColor = ColorPrimary
                                     ),
-                                    shape = RoundedCornerShape(16.dp)
                                 )
+
+                                if(phoneError=="1"){
+                                    Text(
+                                        text= stringResource(R.string.error_message_phonenumber_1),
+                                        color=Color.Red,
+                                        fontSize = 12.sp, // Tamaño estándar de Material 3 para errores
+                                        fontFamily = FontFamily(Font(R.font.manrope)),
+                                        modifier = Modifier
+                                            .padding(start = 16.dp, top = 4.dp)
+                                    )
+                                }else if(phoneError=="2"){
+                                    Text(
+                                        text= stringResource(R.string.error_message_phonenumber_2),
+                                        color=Color.Red,
+                                        fontSize = 12.sp, // Tamaño estándar de Material 3 para errores
+                                        fontFamily = FontFamily(Font(R.font.manrope)),
+                                        modifier = Modifier
+                                            .padding(start = 16.dp, top = 4.dp)
+                                    )
+                                }
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Correo electronico
                                 Text(
-                                    text = "Correo electrónico",
+                                    text = stringResource(R.string.email),
                                     fontSize = 14.sp,
                                     fontFamily = FontFamily(Font(R.font.manrope)),
                                     color = ColorNeutral
                                 )
-                                TextField(
+                                OutlinedTextField(
                                     value = email,
                                     onValueChange = { newValue->
-                                        if(newValue.length<40)
-                                        email = newValue },
+                                        if(newValue.length<40) email = newValue
+                                        emailError = when {
+                                            newValue.isEmpty() -> "2"
+                                            !emailPattern.matcher(newValue).matches() -> "1"
+                                            else -> "0"
+                                        }
+                                                    },
                                     modifier = Modifier
                                         .fillMaxWidth(),
+                                    isError = emailError=="1" || emailError=="2",
                                     placeholder = {
                                         Text(
-                                            text="ejemplo@correo.com",
+                                            text= stringResource(R.string.placeholder_email),
                                             color = ColorNeutral,
                                             fontSize = 14.sp,
                                             fontFamily = FontFamily(Font(R.font.manrope))
@@ -487,22 +621,46 @@ class MainActivity : ComponentActivity() {
                                     keyboardOptions = KeyboardOptions.Default.copy(
                                         keyboardType = KeyboardType.Email    // Muestra el '@' y el '.com' en el teclado
                                     ),
-                                    colors = TextFieldDefaults.colors(
-                                        focusedContainerColor = ColorFields,
+                                    colors = OutlinedTextFieldDefaults.colors(
                                         unfocusedContainerColor = ColorFields,
-                                        focusedTextColor = ColorTextFields,
-                                        unfocusedTextColor = ColorTextFields,
-                                        focusedIndicatorColor = Color.Transparent,
-                                        unfocusedIndicatorColor = Color.Transparent
+                                        focusedContainerColor = ColorFields,
+                                        focusedBorderColor = Color.Transparent,
+                                        unfocusedBorderColor = Color.Transparent,
+
+                                        focusedTextColor = ColorTextFields,//Color de cuando se cambia el texto
+                                        unfocusedTextColor= ColorTextFields,
+                                        cursorColor = ColorTextFields,
+                                        //Colores cuando hay un error
+                                        errorBorderColor = ColorError,
+                                        errorLabelColor = ColorError,
+                                        errorCursorColor = ColorTextFields,
+                                        errorContainerColor = ColorFields
                                     ),
                                     shape = RoundedCornerShape(16.dp),
-                                    singleLine = true // Importante para que no crezca hacia abajo
+                                    singleLine = true, // Importante para que no crezca hacia abajo
+                                    supportingText = {
+                                        if (emailError=="1") {
+                                            Text(
+                                                text = stringResource(R.string.error_message_email_invalid),
+                                                color = Color.Red,
+                                                fontSize = 12.sp,
+                                                fontFamily = FontFamily(Font(R.font.manrope))
+                                            )
+                                        } else if (emailError=="2") {
+                                            Text(
+                                                text = stringResource(R.string.error_message_email_empty),
+                                                color = Color.Red,
+                                                fontSize = 12.sp,
+                                                fontFamily = FontFamily(Font(R.font.manrope))
+                                            )
+                                        }
+                                    }
                                 )
 
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Intereses personales 1
                                 Text(
-                                    text = "Intereses personales",
+                                    text = stringResource(R.string.personal_interest),
                                     fontSize = 14.sp,
                                     fontFamily = FontFamily(Font(R.font.manrope)),
                                     color = ColorNeutral
@@ -572,21 +730,23 @@ class MainActivity : ComponentActivity() {
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Descripcion publica del perfil
                                 Text(
-                                    text = "Descripcion publica del perfil (MAX. 250)",
+                                    text = stringResource(R.string.personal_description),
                                     fontSize = 14.sp,
                                     fontFamily = FontFamily(Font(R.font.manrope)),
                                     color = ColorNeutral
                                 )
                                 TextField(
                                     value = descripcion,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(300.dp),
                                     onValueChange = { nuevoValor ->
                                         if(nuevoValor.length<= 250)
                                         descripcion = nuevoValor
                                     },
                                     placeholder = {
                                         Text(
-                                            text = "Cuentanos un poco sobre ti...",
+                                            text = stringResource(R.string.placeholder_personal_description),
                                             color = ColorNeutral,
                                             fontSize = 14.sp,
                                             fontFamily = FontFamily(Font(R.font.manrope))
@@ -597,75 +757,73 @@ class MainActivity : ComponentActivity() {
                                         focusedContainerColor = ColorFields,
                                         focusedIndicatorColor = Color.Transparent,
                                         unfocusedIndicatorColor = Color.Transparent,
-                                        focusedTextColor = ColorTextFields//Color de cuando se cambia el texto
+                                        focusedTextColor = ColorTextFields,//Color de cuando se cambia el texto
+                                        unfocusedTextColor = ColorTextFields,
+                                        cursorColor = ColorTextFields
                                     ),
                                     shape = RoundedCornerShape(16.dp)
                                 )
                                 Spacer(modifier = Modifier.size(32.dp))
                                 //Boton de registro
                                 Row(
-                                    modifier=Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Center){
-                                    Button(
-                                        onClick = {
-                                            navController.navigate(
-                                                DataScreenDestination(
-                                                    name = nombre,
-                                                    apellido = apellido,
-                                                    fechaNac = fechaNac,
-                                                    genero= genero,
-                                                    numTel=numTel,
-                                                    email=email,
-                                                    intereses= interesesSeleccionados.toList(),
-                                                    descripcion= descripcion
-                                                )
-                                            )
-                                        },
-                                        colors=ButtonDefaults.buttonColors(
-                                            //containerColor = if (estaSeleccionado) ColorPrimary else MyBackgroundColor,
-                                            // contentColor = if (estaSeleccionado) Color.Black else ColorNeutralLight
-                                            containerColor = ColorPrimary,
-                                            contentColor = MyBackgroundColor
-                                        ),
-                                        enabled = if(nombre.isNotEmpty() && apellido.isNotEmpty() && fechaNac.isNotEmpty() && genero.isNotEmpty() && numTel.isNotEmpty() && email.isNotEmpty()){
-                                            true
-                                        }else{
-                                            false
-                                        }
-                                    ) {
-                                        Text(
-                                            text = "Terminar perfil",
-                                            fontSize = 32.sp,
-                                            fontFamily = FontFamily(Font(R.font.plusjakartabold))
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.size(100.dp))
-                                }
-
-                            }
-                            if (showDatePicker) {
-                                DatePickerDialog(
-                                    onDismissRequest = { showDatePicker = false },
-                                    confirmButton = {
-                                        Button(onClick = {
-                                            val resultado = validarEdad(datePickerState.selectedDateMillis)
-                                            tipoErrorFecha = resultado
-
-                                            if (resultado == 0) {
-                                                fechaNac = datePickerState.selectedDateMillis?.let {
-                                                    java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-                                                        .format(java.util.Date(it))
-                                                } ?: ""
-                                            } else {
-                                                fechaNac = "" // Limpiamos si hay error
-                                            }
-                                            showDatePicker = false
-                                        }) { Text("OK") }
-                                    }
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center
                                 ) {
-                                    DatePicker(state = datePickerState)
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Button(
+                                            onClick = {
+                                                val fullPhoneNumber = countryPickerState.getFullPhoneNumber()
+                                                navController.navigate(
+                                                    DataScreenDestination(
+                                                        name = nombre,
+                                                        apellido = apellido,
+                                                        fechaNac = fechaNac,
+                                                        genero= genero,
+                                                        numTel= fullPhoneNumber,
+                                                        email=email,
+                                                        intereses= interesesSeleccionados.toList(),
+                                                        descripcion= descripcion
+                                                    )
+                                                )
+                                            },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = ColorPrimary,
+                                                contentColor = MyBackgroundColor,
+                                                // Opcional: define colores específicos para cuando esté deshabilitado
+                                                disabledContainerColor = Color.Gray.copy(alpha = 0.5f)
+                                            ),
+                                            enabled = esFormularioValido
+                                        ) {
+                                            Text(
+                                                text = stringResource(R.string.end_profile),
+                                                fontSize = 32.sp,
+                                                fontFamily = FontFamily(Font(R.font.plusjakartabold))
+                                            )
+                                        }
+                                        if (!esFormularioValido) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .matchParentSize() // Se pone encima del botón
+                                                    .clickable {
+                                                        // Acción cuando el usuario pica y está bloqueado:
+                                                        // Forzamos a que se muestren los errores si los campos están vacíos
+                                                        if (nombre.isEmpty()) nombreError = true
+                                                        if (apellido.isEmpty()) apellidoError = true
+                                                        if (fechaNac.isEmpty()) fechaNacError = "2"
+                                                        if (genero.isEmpty()) generoError = true
+                                                        if (phoneNumber.isEmpty()) phoneError = "2"
+                                                        if (email.isEmpty()) emailError = "2"
+
+                                                        // Aquí podrías mostrar un Toast o un aviso
+                                                    }
+                                            )
+                                        }
+                                    }
                                 }
+                                Spacer(modifier = Modifier.size(32.dp))
                             }
+
+
                         }
                     }
                     composable<DataScreenDestination>{backStackEtry ->
@@ -677,7 +835,7 @@ class MainActivity : ComponentActivity() {
                                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MyBackgroundColor),
                                     title= {
                                         Text(
-                                            text = "Perfiles",
+                                            text = stringResource(R.string.profles_title),
                                             fontSize = 20.sp,
                                             fontFamily =FontFamily(Font(R.font.plusjakartabold)),
                                             color = ColorSecondary
@@ -691,7 +849,7 @@ class MainActivity : ComponentActivity() {
                                         ) {
                                             Icon(
                                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                                contentDescription = "Icono de flecha de regreso",
+                                                contentDescription = stringResource(R.string.icon_arrowback_description),
                                                 tint = ColorSecondary
                                             )
                                         }
@@ -699,7 +857,7 @@ class MainActivity : ComponentActivity() {
                                     actions = {
                                         Box(modifier= Modifier.padding(end = 20.dp)){
                                             Text(
-                                                text = "Form",
+                                                text = stringResource(R.string.title),
                                                 fontSize = 20.sp,
                                                 fontFamily =FontFamily(Font(R.font.plusjakartabold)),
                                                 color= ColorPrimary
@@ -719,10 +877,103 @@ class MainActivity : ComponentActivity() {
                                     .fillMaxSize()
                                     .verticalScroll(rememberScrollState())
                             ){
-                                Text(
-                                    text=args.name,
-                                    color= ColorNeutralLight
-                                )
+                                Column(modifier=Modifier
+                                    .fillMaxWidth()
+                                    .border(
+                                        width = 1.dp,
+                                        color = ColorTextFields, // Color del borde
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .padding(16.dp)
+                                ){
+                                    Text(
+                                        text = "${args.name} ${args.apellido}",
+                                        fontSize = 18.sp,
+                                        fontFamily = FontFamily(Font(R.font.plusjakarta)),
+                                        fontWeight = FontWeight.Bold,
+                                        color = ColorPrimary,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                                            .padding(bottom=16.dp)
+                                    )
+                                    Row{
+                                        Text(
+                                            text= stringResource(R.string.birthdate_show),
+                                            fontFamily = FontFamily(Font(R.font.manrope)),
+                                            color= ColorTertiary
+                                        )
+                                        Text(
+                                            text=args.fechaNac,
+                                            fontFamily = FontFamily(Font(R.font.manrope)),
+                                            color= ColorNeutralLight
+                                        )
+                                    }
+                                    Row{
+                                        Text(
+                                            text= stringResource(R.string.gender)+stringResource(R.string.dots),
+                                            fontFamily = FontFamily(Font(R.font.manrope)),
+                                            color= ColorTertiary
+                                        )
+                                        Text(
+                                            text=args.genero,
+                                            fontFamily = FontFamily(Font(R.font.manrope)),
+                                            color= ColorNeutralLight
+                                        )
+                                    }
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(vertical = 8.dp),
+                                        thickness = 1.dp,
+                                        color = ColorNeutral
+                                    )
+                                    Text(
+                                        text= stringResource(R.string.contact_info_show),
+                                        fontFamily = FontFamily(Font(R.font.manrope)),
+                                        color= ColorTertiary
+                                    )
+                                    Text(
+                                        text=args.numTel,
+                                        fontFamily = FontFamily(Font(R.font.manrope)),
+                                        color= ColorNeutralLight
+                                    )
+                                    Text(
+                                        text=args.email,
+                                        fontFamily = FontFamily(Font(R.font.manrope)),
+                                        color= ColorNeutralLight
+                                    )
+                                    if (args.intereses.isNotEmpty()) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            thickness = 1.dp,
+                                            color = ColorNeutral
+                                        )
+                                        Text(text = stringResource(R.string.intereses_show),
+                                            fontFamily = FontFamily(Font(R.font.manrope)),
+                                            color = ColorTertiary
+                                        )
+                                        Text(
+                                            // .joinToString convierte [A, B] en "A, B"
+                                            text = args.intereses.joinToString(", "),
+                                            color = ColorNeutralLight
+                                        )
+                                    }
+                                    if (args.descripcion.isNotBlank()) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            thickness = 1.dp,
+                                            color = ColorNeutral
+                                        )
+                                        Text(text = stringResource(R.string.about_me),
+                                            fontFamily = FontFamily(Font(R.font.manrope)),
+                                            color = ColorTertiary
+                                        )
+
+                                        Text(
+                                            text = args.descripcion,
+                                            color = ColorNeutralLight,
+                                            fontFamily = FontFamily(Font(R.font.manrope))
+                                        )
+
+                                    }
+                                }
                             }
 
                         }
@@ -749,6 +1000,3 @@ data class DataScreenDestination(
     val descripcion: String
 
 )
-
-
-

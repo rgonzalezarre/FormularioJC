@@ -16,6 +16,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        //Linea a agregar para ejecutar lo del countrypicker
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
