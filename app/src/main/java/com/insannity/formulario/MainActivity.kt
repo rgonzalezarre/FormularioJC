@@ -291,7 +291,7 @@ class MainActivity : ComponentActivity() {
                                                 ColorTertiary,
                                                 shape = RoundedCornerShape(24.dp)
                                             )
-                                            .clickable { /* Aquí abrirías la galería */ },
+                                            .clickable { },//Este es para implementar la funcion de la camara
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
@@ -396,7 +396,7 @@ class MainActivity : ComponentActivity() {
                                         if(apellidoError){
                                             Text(
                                                 text= stringResource(R.string.error_message_surname),
-                                                color=Color.Red
+                                                color=ColorError
                                             )
                                         }
 
@@ -448,7 +448,7 @@ class MainActivity : ComponentActivity() {
                                         if (fechaNacError=="1") {
                                             Text(
                                                 text = stringResource(R.string.error_message_birthdate_1),
-                                                color = Color.Red
+                                                color = ColorError
                                             )
                                         }else if(fechaNacError=="2"){
                                             Text(
@@ -460,7 +460,7 @@ class MainActivity : ComponentActivity() {
                                     colors = TextFieldDefaults.colors(
                                         disabledContainerColor = ColorFields,
                                         disabledTextColor = ColorTextFields,
-                                        disabledIndicatorColor = if (fechaNacError=="1" || fechaNacError=="2") Color.Red else Color.Transparent,
+                                        disabledIndicatorColor = if (fechaNacError=="1" || fechaNacError=="2") ColorError else Color.Transparent,
                                         disabledLabelColor = ColorNeutral
                                     ),
                                     shape = RoundedCornerShape(16.dp),
@@ -510,7 +510,7 @@ class MainActivity : ComponentActivity() {
                                 if(generoError){
                                     Text(
                                         text= stringResource(R.string.error_message_gender),
-                                        color=Color.Red,
+                                        color=ColorError,
                                         fontSize = 12.sp,
                                         fontFamily = FontFamily(Font(R.font.manrope)),
                                         modifier = Modifier
@@ -568,7 +568,7 @@ class MainActivity : ComponentActivity() {
                                 if(phoneError=="1"){
                                     Text(
                                         text= stringResource(R.string.error_message_phonenumber_1),
-                                        color=Color.Red,
+                                        color=ColorError,
                                         fontSize = 12.sp,
                                         fontFamily = FontFamily(Font(R.font.manrope)),
                                         modifier = Modifier
@@ -577,7 +577,7 @@ class MainActivity : ComponentActivity() {
                                 }else if(phoneError=="2"){
                                     Text(
                                         text= stringResource(R.string.error_message_phonenumber_2),
-                                        color=Color.Red,
+                                        color=ColorError,
                                         fontSize = 12.sp,
                                         fontFamily = FontFamily(Font(R.font.manrope)),
                                         modifier = Modifier
@@ -638,14 +638,14 @@ class MainActivity : ComponentActivity() {
                                         if (emailError=="1") {
                                             Text(
                                                 text = stringResource(R.string.error_message_email_invalid),
-                                                color = Color.Red,
+                                                color = ColorError,
                                                 fontSize = 12.sp,
                                                 fontFamily = FontFamily(Font(R.font.manrope))
                                             )
                                         } else if (emailError=="2") {
                                             Text(
                                                 text = stringResource(R.string.error_message_email_empty),
-                                                color = Color.Red,
+                                                color = ColorError,
                                                 fontSize = 12.sp,
                                                 fontFamily = FontFamily(Font(R.font.manrope))
                                             )
