@@ -1,5 +1,7 @@
 # Formulario - Jetpack Compose
-![imagen encabezado](/Imagenes/ImagenreadmeP1.png)
+<p align="center">
+  <img src="imagenes/ImagenreadmeP1.png" alt="Encabezado del Formulario" width="600px">
+</p>
 Esta es una aplicación de Android construida con **Jetpack Compose** que implementa un formulario de perfil de usuario completo, con validaciones en tiempo real y navegación entre pantallas.
 
 ## 🚀 Características
