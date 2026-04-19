@@ -5,7 +5,7 @@
 <p>
   <img src="https://img.shields.io/badge/Version-1.11.1-light" alt="Versión">
   <img src="https://img.shields.io/badge/Status-Upgrading-red" alt="Status">
-  <img src="https://img.shields.io/badge/Release%20date-june-blue" alt="Release date">
+  <img src="https://img.shields.io/badge/Release%20date-april-blue" alt="Release date">
 </p>
 Esta es una aplicación de Android construida con **Jetpack Compose** que implementa un formulario de perfil de usuario completo, con validaciones en tiempo real y navegación entre pantallas.
 
