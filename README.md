@@ -30,5 +30,5 @@ Esta es una aplicación de Android construida con **Jetpack Compose** que implem
 1. Clona el repositorio:
     
     ```bash
-    git clone https://github.com/insannity/formulario-app.git
+    git clone https://github.com/rgonzalezarre/FormularioJC.git
     ```
