@@ -1,4 +1,4 @@
-<p align="center"> Formulario - Jetpack Compose</p>
+<h1 align="center"> Formulario - Jetpack Compose</h1>
 <p align="center">
   <img src="Imagenes/ImagenreadmeP1.png" alt="Encabezado del Formulario" width="400px">
 </p>
